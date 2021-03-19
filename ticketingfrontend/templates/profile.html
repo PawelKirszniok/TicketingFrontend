@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-section">
+    <img class="rounded circle account-img" src="{{current_user.picture}}"
+    <h2 class="account-heading"> {{ current_user.login}}</h2>
+     <p class="text-secondary">
+        {{ current_user.name}}
+         <br>
+        {{ current_user.position}}
+     </p>
+</div>
+
+
+
+
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-section">
+    <div class="column">
+        <h2 class="account-heading">
+            ID: {{ticket.id}} -- {{ticket.title}} -- STATUS: {{ticket.status}}
+        </h2>
+    </div>
+</div>
+{% for post in posts %}
+<div class="content-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm">
+                <img class="rounded circle account-img" src="{{current_user.picture}}">
+                <h4 class="text-secondary">
+                    <strong>{{post.user.name}} </strong><br>
+                    {{post.user.position}}<br>
+                    new_status: {{post.new_status}}<br>
+                    posted: {{post.timestamp}}<br>
+                </h4>
+            </div>
+            <div class="col-sm">
+                <p>
+                    {{post.content}}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>    
+{% endfor %}
+
+ <div class="content-section">
+        <form method="post" action="">
+            {{ form.hidden_tag() }}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">ADD POST</legend>
+                <div class="form-group">
+                    {{ form.new_status.label(class = "form-control-label") }}
+
+                    {% if form.new_status.errors %}
+                        {{ form.new_status(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.new_status.errors %}
+                            <span> {{ error }} </span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.new_status(class = "form-control form-control-lg") }}
+                    {% endif %}
+
+                </div>
+                <div class="form-group">
+                    {{ form.content.label(class = "form-control-label") }}
+                    {% if form.content.errors %}
+                        {{ form.content(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.content.errors %}
+                            <span> {{ error }} </span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.content(class = "form-control form-control-lg") }}
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    {{ form.submit(class="btn btn-outline-info") }}
+                </div>
+            </fieldset>
+
+
+        </form>
+    </div>
+
+
+
+{% endblock %}
