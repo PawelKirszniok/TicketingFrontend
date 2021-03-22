@@ -6,6 +6,7 @@ from ticketingfrontend.forms.ticket import NewTicketForm
 from ticketingfrontend.forms.post import NewPostForm
 from flask_login import login_user, current_user, logout_user, login_required
 from ticketingfrontend.login import User
+import hashlib
 
 
 @app.route('/')
@@ -21,17 +22,17 @@ def signup():
 
     form = UserRegistrationForm()
     if form.validate_on_submit():
-        # here add password hashing
-        hashed_password = form.password.data
+
+        password_hash = hashlib.md5(bytes(form.password.data, 'utf-8'))
 
         # validate data with the database
-        user_id, _ = database_service.validate_user(hashed_password, form.login.data, form.email.data)
+        user_id, _ = database_service.validate_user(password_hash.hexdigest(), form.login.data, form.email.data)
 
         # inform the user if the credentials are taken
         if user_id:
             return render_template('signup.html', title='Sign Up', form=form, duplicate=True)
         else:
-            database_service.save_user(form.login.data, hashed_password, form.email.data, form.position.data, form.name.data)
+            database_service.save_user(form.login.data, password_hash.hexdigest(), form.email.data, form.position.data, form.name.data)
             # account created successfully
             return redirect(url_for('login'))
     return render_template('signup.html', title='Sign Up', form=form)
@@ -44,7 +45,9 @@ def login():
 
     form = UserLoginForm()
     if form.validate_on_submit():
-        user_id, valid = database_service.validate_user(form.password.data, form.login.data)
+        password_hash = hashlib.md5(bytes(form.password.data, 'utf-8'))
+
+        user_id, valid = database_service.validate_user(password_hash.hexdigest(), form.login.data)
 
         # inform the user if password did not match.
         if not valid:
@@ -113,6 +116,8 @@ def ticket():
     posts = database_service.get_posts(ticket_id)
 
     form = NewPostForm()
+    if form.validate_on_submit():
+        database_service.save_post(current_user.id,ticket_id, form.content.data, form.new_status.data)
 
     return render_template('ticket.html', title=f'Ticket - {ticket_id}', form=form, ticket=ticket, posts=posts)
 
