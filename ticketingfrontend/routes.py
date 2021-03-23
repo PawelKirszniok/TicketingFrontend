@@ -7,6 +7,9 @@ from ticketingfrontend.forms.post import NewPostForm
 from flask_login import login_user, current_user, logout_user, login_required
 from ticketingfrontend.login import User
 import hashlib
+from ticketingfrontend.pictures import save_picture
+import secrets
+import os
 
 
 @app.route('/')
@@ -22,6 +25,9 @@ def signup():
 
     form = UserRegistrationForm()
     if form.validate_on_submit():
+        picture_name = 'default.jpg'
+        if form.picture.data:
+            picture_name = save_picture(form.picture.data)
 
         password_hash = hashlib.md5(bytes(form.password.data, 'utf-8'))
 
@@ -32,7 +38,7 @@ def signup():
         if user_id:
             return render_template('signup.html', title='Sign Up', form=form, duplicate=True)
         else:
-            database_service.save_user(form.login.data, password_hash.hexdigest(), form.email.data, form.position.data, form.name.data)
+            database_service.save_user(form.login.data, password_hash.hexdigest(), form.email.data, form.position.data, form.name.data, picture_name)
             # account created successfully
             return redirect(url_for('login'))
     return render_template('signup.html', title='Sign Up', form=form)
@@ -73,7 +79,8 @@ def logout():
 @app.route('/profile')
 @login_required
 def user_profile():
-    return render_template('profile.html', title='Profile')
+    user_image = url_for('static', filename=f"profile_pictures/{current_user.picture}")
+    return render_template('profile.html', title='Profile', image=user_image)
 
 
 @app.route('/tickets')
@@ -115,6 +122,9 @@ def ticket():
 
     posts = database_service.get_posts(ticket_id)
 
+    for post in posts:
+        post['user']['picture'] = url_for('static', filename=f"profile_pictures/{post['user']['picture']}")
+
     form = NewPostForm()
     if form.validate_on_submit():
         database_service.save_post(current_user.id,ticket_id, form.content.data, form.new_status.data)
@@ -122,6 +132,11 @@ def ticket():
     return render_template('ticket.html', title=f'Ticket - {ticket_id}', form=form, ticket=ticket, posts=posts)
 
 
-
-
+def save_picture(picture):
+    random_hex = secrets.token_hex(8)
+    _, file_extension = os.path.splitext(picture.filename)
+    new_filename = random_hex + file_extension
+    picture_path = os.path.join(app.root_path, 'static/profile_pictures', new_filename)
+    picture.save(picture_path)
+    return new_filename
 

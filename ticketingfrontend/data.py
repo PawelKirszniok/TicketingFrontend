@@ -62,7 +62,7 @@ class DataService:
         logging.info(f'Validate User - success {user_id} - {valid_password}')
         return user_id, valid_password
 
-    def save_user(self, login, password, email, position, name, picture='default.jpg'):
+    def save_user(self, login, password, email, position, name, picture):
 
         payload = {'login': login, 'password': password, 'email': email, 'position': position, 'name': name,
                    'picture': picture}
