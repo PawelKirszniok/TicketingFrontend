@@ -4,10 +4,10 @@ from ticketingfrontend.forms.login import UserLoginForm
 from ticketingfrontend.forms.registration import UserRegistrationForm
 from ticketingfrontend.forms.ticket import NewTicketForm
 from ticketingfrontend.forms.post import NewPostForm
+from ticketingfrontend.forms.user_search_bar import UserSearchBar
 from flask_login import login_user, current_user, logout_user, login_required
 from ticketingfrontend.login import User
 import hashlib
-from ticketingfrontend.pictures import save_picture
 import secrets
 import os
 
@@ -87,7 +87,7 @@ def user_profile():
 @login_required
 def tickets_view():
 
-    tickets = database_service.get_tickets(current_user.id)
+    tickets = database_service.get_tickets(current_user.id )
 
     return render_template('tickets.html', title='Tickets', tickets=tickets)
 
@@ -123,13 +123,19 @@ def ticket():
     posts = database_service.get_posts(ticket_id)
 
     for post in posts:
-        post['user']['picture'] = url_for('static', filename=f"profile_pictures/{post['user']['picture']}")
-
+        post['user']['picture_url'] = url_for('static', filename=f"profile_pictures/{post['user']['picture']}")
+    user_search = UserSearchBar()
     form = NewPostForm()
+
+    if user_search.validate_on_submit():
+        user = database_service.str_search_users(user_search.search_string.data)
+        if user:
+            database_service.save_relation(user['id'], ticket_id, 'developer')  # TODO
+
     if form.validate_on_submit():
         database_service.save_post(current_user.id,ticket_id, form.content.data, form.new_status.data)
 
-    return render_template('ticket.html', title=f'Ticket - {ticket_id}', form=form, ticket=ticket, posts=posts)
+    return render_template('ticket.html', title=f'Ticket - {ticket_id}', form=form, ticket=ticket, posts=posts, user_search=user_search)
 
 
 def save_picture(picture):

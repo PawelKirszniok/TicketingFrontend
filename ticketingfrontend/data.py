@@ -113,8 +113,12 @@ class DataService:
 
         payload = {'user': user_id, 'ticket': ticket_id, 'role': role}
         json_request = {'secretkey': self.secret_key, 'payload': payload}
-        cache_service.clear_tickets(str(user_id)+role)
+        cache_service.clear_tickets(str(user_id))
+        cache_service.clear_tickets(str(user_id)+'author')
+        cache_service.clear_tickets(str(user_id)+'developer')
+
         requests.post(self.save_relation_url, json=json_request)
+
 
     def save_post(self, user_id, ticket_id, content, status_change=None):
 
@@ -123,7 +127,34 @@ class DataService:
         cache_service.clear_posts(ticket_id)
         requests.post(self.save_post_url, json=json_request)
 
-    def get_tickets(self, user_id, role='author'):
+    def get_tickets(self, user_id):
+
+        # try to use cached data
+        data = cache_service.get_tickets(str(user_id))
+
+        if data:
+            response = data
+
+        # if not available query the database
+        else:
+            payload = {'user': user_id}
+            json_request = {'secretkey': self.secret_key, 'payload': payload}
+
+            raw_response = requests.post(self.get_tickets_url, json=json_request)
+
+            if raw_response.ok:
+                response = raw_response.json()
+            else:
+                logging.warning('Get Tickets - response error ' + str(raw_response))
+                return None
+
+        if not data:
+            # populate the cache if not used
+            cache_service.set_tickets(str(user_id), response)
+        logging.info(f'Get User - success {user_id} -  {response}')
+        return response
+
+    def get_tickets_by_role(self, user_id, role):
 
         # try to use cached data
         data = cache_service.get_tickets(str(user_id)+role)
@@ -146,7 +177,7 @@ class DataService:
 
         if not data:
             # populate the cache if not used
-            cache_service.set_user(str(user_id)+role, response)
+            cache_service.set_tickets(str(user_id+role), response)
         logging.info(f'Get User - success {user_id} -  {response}')
         return response
 
@@ -202,3 +233,18 @@ class DataService:
             cache_service.set_posts(ticket_id, response)
         logging.info(f'Get User - success {ticket_id} -  {response}')
         return response
+
+    def str_search_users(self, text):
+
+         payload = {'text': text}
+         json_request = {'secretkey': self.secret_key, 'payload': payload}
+
+         raw_response = requests.post(self.str_search_users_url, json=json_request)
+
+         if raw_response.ok:
+            response = raw_response.json()
+         else:
+            logging.warning('Get Posts - response error ' + str(raw_response))
+            return None
+
+         return response

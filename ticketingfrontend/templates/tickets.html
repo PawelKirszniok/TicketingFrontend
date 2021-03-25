@@ -7,6 +7,7 @@
         <th>Title</th>
         <th>Status</th>
         <th>Deadline</th>
+        <th>role</th>
     </tr>
     {% if tickets %}
     {% for ticket in tickets %}
@@ -15,6 +16,7 @@
         <td>{{ticket.title}}</td>
         <td>{{ticket.status}}</td>
         <td>{{ticket.deadline}}</td>
+        <td>{{ticket.role}}</td>
     </tr>
     {% endfor %}
     {% endif %}

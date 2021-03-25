@@ -5,6 +5,24 @@
         <h2 class="account-heading">
             ID: {{ticket.id}} -- {{ticket.title}} -- STATUS: {{ticket.status}}
         </h2>
+         <div class="content-section">
+        <form method="post" action="">
+            {{ user_search.hidden_tag() }}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Assign developer</legend>
+                <div class="form-group">
+                    {{ user_search.search_string.label(class = "form-control-label") }}
+                    {{ user_search.search_string(class = "form-control form-control-lg") }}
+
+                </div>
+                <div class="form-group">
+                    {{ user_search.search(class="btn btn-outline-info") }}
+                </div>
+            </fieldset>
+
+
+        </form>
+    </div>
     </div>
 </div>
 {% for post in posts %}
@@ -12,7 +30,7 @@
     <div class="container">
         <div class="row">
             <div class="col-sm">
-                <img class="rounded circle account-img" src="{{post.user.picture}}">
+                <img class="rounded circle account-img" src="{{post.user.picture_url}}">
                 <h4 class="text-secondary">
                     <strong>{{post.user.name}} </strong><br>
                     {{post.user.position}}<br>
