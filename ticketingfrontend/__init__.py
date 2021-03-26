@@ -4,7 +4,7 @@ from configparser import ConfigParser
 from flask_login import LoginManager
 
 config_object = ConfigParser()
-config_object.read('ticketingfrontend/config.ini')
+config_object.read('TicketingBackground/TicketingFrontend/ticketingfrontend/config.ini')
 keys = config_object['KEYS']
 app = Flask(__name__)
 app.config['SECRET_KEY'] = keys['local_key']

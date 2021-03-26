@@ -4,8 +4,12 @@ from ticketingfrontend.forms.login import UserLoginForm
 from ticketingfrontend.forms.registration import UserRegistrationForm
 from ticketingfrontend.forms.ticket import NewTicketForm
 from ticketingfrontend.forms.post import NewPostForm
+from ticketingfrontend.forms.user_search_bar import UserSearchBar
 from flask_login import login_user, current_user, logout_user, login_required
 from ticketingfrontend.login import User
+import hashlib
+import secrets
+import os
 
 
 @app.route('/')
@@ -21,17 +25,20 @@ def signup():
 
     form = UserRegistrationForm()
     if form.validate_on_submit():
-        # here add password hashing
-        hashed_password = form.password.data
+        picture_name = 'default.jpg'
+        if form.picture.data:
+            picture_name = save_picture(form.picture.data)
+
+        password_hash = hashlib.md5(bytes(form.password.data, 'utf-8'))
 
         # validate data with the database
-        user_id, _ = database_service.validate_user(hashed_password, form.login.data, form.email.data)
+        user_id, _ = database_service.validate_user(password_hash.hexdigest(), form.login.data, form.email.data)
 
         # inform the user if the credentials are taken
         if user_id:
             return render_template('signup.html', title='Sign Up', form=form, duplicate=True)
         else:
-            database_service.save_user(form.login.data, hashed_password, form.email.data, form.position.data, form.name.data)
+            database_service.save_user(form.login.data, password_hash.hexdigest(), form.email.data, form.position.data, form.name.data, picture_name)
             # account created successfully
             return redirect(url_for('login'))
     return render_template('signup.html', title='Sign Up', form=form)
@@ -44,7 +51,9 @@ def login():
 
     form = UserLoginForm()
     if form.validate_on_submit():
-        user_id, valid = database_service.validate_user(form.password.data, form.login.data)
+        password_hash = hashlib.md5(bytes(form.password.data, 'utf-8'))
+
+        user_id, valid = database_service.validate_user(password_hash.hexdigest(), form.login.data)
 
         # inform the user if password did not match.
         if not valid:
@@ -70,16 +79,34 @@ def logout():
 @app.route('/profile')
 @login_required
 def user_profile():
-    return render_template('profile.html', title='Profile')
+    user_image = url_for('static', filename=f"profile_pictures/{current_user.picture}")
+    return render_template('profile.html', title='Profile', image=user_image)
 
 
 @app.route('/tickets')
 @login_required
 def tickets_view():
 
-    tickets = database_service.get_tickets(current_user.id)
+    order_by = request.args.get('order_by')
+    if order_by:
+        tickets = database_service.get_tickets_ordered(current_user.id, order_by=order_by)
+    else:
+        tickets = database_service.get_tickets(current_user.id )
 
     return render_template('tickets.html', title='Tickets', tickets=tickets)
+
+
+@app.route('/closed_tickets')
+@login_required
+def closed_tickets():
+
+    order_by = request.args.get('order_by')
+    if order_by:
+        tickets = database_service.get_tickets_ordered(current_user.id, order_by=order_by, closed=True)
+    else:
+        tickets = database_service.get_tickets(current_user.id, closed = True )
+
+    return render_template('closed_tickets.html', title='Tickets', tickets=tickets)
 
 
 @app.route('/new_ticket', methods=['GET', 'POST'])
@@ -112,11 +139,27 @@ def ticket():
 
     posts = database_service.get_posts(ticket_id)
 
+    for post in posts:
+        post['user']['picture_url'] = url_for('static', filename=f"profile_pictures/{post['user']['picture']}")
+    user_search = UserSearchBar()
     form = NewPostForm()
 
-    return render_template('ticket.html', title=f'Ticket - {ticket_id}', form=form, ticket=ticket, posts=posts)
+    if user_search.validate_on_submit():
+        user = database_service.str_search_users(user_search.search_string.data)
+        if user:
+            database_service.save_relation(user['id'], ticket_id, 'developer')  # TODO
+
+    if form.validate_on_submit():
+        database_service.save_post(current_user.id,ticket_id, form.content.data, form.new_status.data)
+
+    return render_template('ticket.html', title=f'Ticket - {ticket_id}', form=form, ticket=ticket, posts=posts, user_search=user_search)
 
 
-
-
+def save_picture(picture):
+    random_hex = secrets.token_hex(8)
+    _, file_extension = os.path.splitext(picture.filename)
+    new_filename = random_hex + file_extension
+    picture_path = os.path.join(app.root_path, 'static/profile_pictures', new_filename)
+    picture.save(picture_path)
+    return new_filename
 

@@ -11,11 +11,20 @@ def load_user(user_id):
 class User(UserMixin):
 
     def __init__(self, json_data):
+        if not json_data:
+            self.login = 'empty'
+            self.name = 'empty'
+            self.password = 'empty'
+            self.picture = 'empty'
+            self.position = 'empty'
+            self.email = 'empty'
+            self.id = -1
 
-        self.login = json_data['login']
-        self.name = json_data['name']
-        self.password = json_data['password']
-        self.picture = json_data['picture']
-        self.position = json_data['position']
-        self.email = json_data['email']
-        self.id = json_data['id']
+        else:
+            self.login = json_data['login']
+            self.name = json_data['name']
+            self.password = json_data['password']
+            self.picture = json_data['picture']
+            self.position = json_data['position']
+            self.email = json_data['email']
+            self.id = json_data['id']

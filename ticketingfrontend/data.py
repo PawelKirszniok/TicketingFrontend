@@ -9,7 +9,7 @@ class DataService:
     def __init__(self):
 
         config_object = ConfigParser()
-        config_object.read("ticketingfrontend/config.ini")
+        config_object.read("TicketingBackground/TicketingFrontend/ticketingfrontend/config.ini")
         path_config = config_object['PATHS']
         self.secret_key = config_object['KEYS']['api_key']
         self.get_user_url = path_config['get_user']
@@ -32,6 +32,7 @@ class DataService:
         data = cache_service.get_verification(login + email + password)
 
         if data:
+            logging.info(f"using cached- {data}")
             response = data
 
         # if not available query the database
@@ -42,7 +43,8 @@ class DataService:
             if email:
                 payload['email'] = email
             json_request = {'secretkey': self.secret_key, 'payload': payload}
-            raw_response = requests.post(self.validate_user_url, json=json_request)  # FIXME
+            logging.info( f"sending request {json_request}")
+            raw_response = requests.post(self.validate_user_url, json=json_request)
 
             if raw_response.ok:
                 response = raw_response.json()
@@ -50,8 +52,8 @@ class DataService:
                 logging.warning('Validate User - response error ' + str(raw_response))
                 return None, None
 
-            user_id = response['user_id']
-            valid_password = response['valid_password']
+        user_id = response['user_id']
+        valid_password = response['valid_password']
 
         if not data:
             # populate the cache if not used
@@ -60,7 +62,7 @@ class DataService:
         logging.info(f'Validate User - success {user_id} - {valid_password}')
         return user_id, valid_password
 
-    def save_user(self, login, password, email, position, name, picture='default.jpg'):
+    def save_user(self, login, password, email, position, name, picture):
 
         payload = {'login': login, 'password': password, 'email': email, 'position': position, 'name': name,
                    'picture': picture}
@@ -111,27 +113,32 @@ class DataService:
 
         payload = {'user': user_id, 'ticket': ticket_id, 'role': role}
         json_request = {'secretkey': self.secret_key, 'payload': payload}
+        cache_service.clear_tickets(str(user_id))
+        cache_service.clear_tickets(str(user_id)+'author')
+        cache_service.clear_tickets(str(user_id)+'developer')
+
         requests.post(self.save_relation_url, json=json_request)
+
 
     def save_post(self, user_id, ticket_id, content, status_change=None):
 
         payload = {'author_id': user_id, 'ticket_id': ticket_id, 'content': content, 'status_change': status_change}
         json_request = {'secretkey': self.secret_key, 'payload': payload}
+        cache_service.clear_posts(ticket_id)
         requests.post(self.save_post_url, json=json_request)
 
-    def get_tickets(self, user_id, role='author'):
+    def get_tickets(self, user_id, closed=False):
 
         # try to use cached data
-        data = cache_service.get_tickets(str(user_id)+role)
+        data = cache_service.get_tickets(str(user_id)+str(closed))
 
         if data:
             response = data
 
         # if not available query the database
         else:
-            payload = {'user': user_id, 'role': role}
+            payload = {'user': user_id, 'closed': closed}
             json_request = {'secretkey': self.secret_key, 'payload': payload}
-
             raw_response = requests.post(self.get_tickets_url, json=json_request)
 
             if raw_response.ok:
@@ -142,9 +149,36 @@ class DataService:
 
         if not data:
             # populate the cache if not used
-            cache_service.set_user(str(user_id)+role, response)
-        logging.info(f'Get User - success {user_id} -  {response}')
+            cache_service.set_tickets(str(user_id)+str(closed), response)
+        logging.info(f'Get Tickets - success {user_id} -  {response}')
         return response
+
+    def get_tickets_ordered(self, user_id, order_by, closed=False):
+
+        # try to use cached data
+        data = cache_service.get_tickets(str(user_id)+str(closed)+order_by)
+
+        if data:
+            response = data
+
+        # if not available query the database
+        else:
+            payload = {'user': user_id, 'closed': closed, 'order_by': order_by}
+            json_request = {'secretkey': self.secret_key, 'payload': payload}
+            raw_response = requests.post(self.get_tickets_url, json=json_request)
+
+            if raw_response.ok:
+                response = raw_response.json()
+            else:
+                logging.warning('Get Tickets Ordered- response error ' + str(raw_response))
+                return None
+
+        if not data:
+            # populate the cache if not used
+            cache_service.set_tickets(str(user_id)+str(closed)+order_by, response)
+        logging.info(f'Get Tickets Ordered - success {user_id} -  {response}')
+        return response
+
 
     def get_ticket(self, ticket_id):
 
@@ -198,3 +232,18 @@ class DataService:
             cache_service.set_posts(ticket_id, response)
         logging.info(f'Get User - success {ticket_id} -  {response}')
         return response
+
+    def str_search_users(self, text):
+
+         payload = {'text': text}
+         json_request = {'secretkey': self.secret_key, 'payload': payload}
+
+         raw_response = requests.post(self.str_search_users_url, json=json_request)
+
+         if raw_response.ok:
+            response = raw_response.json()
+         else:
+            logging.warning('Get Posts - response error ' + str(raw_response))
+            return None
+
+         return response

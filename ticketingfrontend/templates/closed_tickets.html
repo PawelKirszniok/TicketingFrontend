@@ -5,9 +5,9 @@
     <tr>
         <th>ID</th>
         <th>Title</th>
-        <th><a href="{{url_for('closed_tickets')}}">Status<a></a></th>
+        <th><a href="{{url_for('tickets_view')}}">Status<a></a></th>
         <th>Deadline</th>
-        <th><a href="{{url_for('tickets_view')}}?order_by=role">Role</a></th>
+        <th><a href="{{url_for('closed_tickets')}}?order_by=role">Role</a></th>
     </tr>
 
     {% if tickets %}
