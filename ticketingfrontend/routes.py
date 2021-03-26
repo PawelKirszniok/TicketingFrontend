@@ -87,9 +87,26 @@ def user_profile():
 @login_required
 def tickets_view():
 
-    tickets = database_service.get_tickets(current_user.id )
+    order_by = request.args.get('order_by')
+    if order_by:
+        tickets = database_service.get_tickets_ordered(current_user.id, order_by=order_by)
+    else:
+        tickets = database_service.get_tickets(current_user.id )
 
     return render_template('tickets.html', title='Tickets', tickets=tickets)
+
+
+@app.route('/closed_tickets')
+@login_required
+def closed_tickets():
+
+    order_by = request.args.get('order_by')
+    if order_by:
+        tickets = database_service.get_tickets_ordered(current_user.id, order_by=order_by, closed=True)
+    else:
+        tickets = database_service.get_tickets(current_user.id, closed = True )
+
+    return render_template('closed_tickets.html', title='Tickets', tickets=tickets)
 
 
 @app.route('/new_ticket', methods=['GET', 'POST'])

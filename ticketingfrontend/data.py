@@ -127,19 +127,18 @@ class DataService:
         cache_service.clear_posts(ticket_id)
         requests.post(self.save_post_url, json=json_request)
 
-    def get_tickets(self, user_id):
+    def get_tickets(self, user_id, closed=False):
 
         # try to use cached data
-        data = cache_service.get_tickets(str(user_id))
+        data = cache_service.get_tickets(str(user_id)+str(closed))
 
         if data:
             response = data
 
         # if not available query the database
         else:
-            payload = {'user': user_id}
+            payload = {'user': user_id, 'closed': closed}
             json_request = {'secretkey': self.secret_key, 'payload': payload}
-
             raw_response = requests.post(self.get_tickets_url, json=json_request)
 
             if raw_response.ok:
@@ -150,36 +149,36 @@ class DataService:
 
         if not data:
             # populate the cache if not used
-            cache_service.set_tickets(str(user_id), response)
-        logging.info(f'Get User - success {user_id} -  {response}')
+            cache_service.set_tickets(str(user_id)+str(closed), response)
+        logging.info(f'Get Tickets - success {user_id} -  {response}')
         return response
 
-    def get_tickets_by_role(self, user_id, role):
+    def get_tickets_ordered(self, user_id, order_by, closed=False):
 
         # try to use cached data
-        data = cache_service.get_tickets(str(user_id)+role)
+        data = cache_service.get_tickets(str(user_id)+str(closed)+order_by)
 
         if data:
             response = data
 
         # if not available query the database
         else:
-            payload = {'user': user_id, 'role': role}
+            payload = {'user': user_id, 'closed': closed, 'order_by': order_by}
             json_request = {'secretkey': self.secret_key, 'payload': payload}
-
             raw_response = requests.post(self.get_tickets_url, json=json_request)
 
             if raw_response.ok:
                 response = raw_response.json()
             else:
-                logging.warning('Get Tickets - response error ' + str(raw_response))
+                logging.warning('Get Tickets Ordered- response error ' + str(raw_response))
                 return None
 
         if not data:
             # populate the cache if not used
-            cache_service.set_tickets(str(user_id+role), response)
-        logging.info(f'Get User - success {user_id} -  {response}')
+            cache_service.set_tickets(str(user_id)+str(closed)+order_by, response)
+        logging.info(f'Get Tickets Ordered - success {user_id} -  {response}')
         return response
+
 
     def get_ticket(self, ticket_id):
 
